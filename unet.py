@@ -1,81 +1,93 @@
-import numpy as np
+from __future__ import division, print_function
+
 import glob
-import matplotlib.pyplot as plt
+import numpy as np
 
-from sklearn.utils import shuffle as _shuffle
-
+from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.layers import (Input, Conv2D, MaxPooling2D, UpSampling2D,
+						  Dropout, concatenate)
 from keras.models import Model
-from keras.layers import Input, merge, Conv2D, MaxPooling2D, UpSampling2D, Dropout, Cropping2D
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler, EarlyStopping
+from sklearn.utils import shuffle as _shuffle
 
 from preprocess import ImageDataGenerator
 
 
+def _ConvDown(input_tensor, filters):
+	out = Conv2D(filters, 3, padding='same', activation='elu',
+				 kernel_initializer='he_normal')(input_tensor)
+	return Conv2D(filters, 3, padding='same', activation='elu',
+                  kernel_initializer='he_normal')(out)
+
+
+def _ConvUp(input_tensor, filters):
+	out = UpSampling2D(size=(2, 2))(input_tensor)
+	return Conv2D(filters, 2, padding='same', activation='elu',
+				 kernel_initializer='he_normal')(out)
+
 
 def UNet(img_size=(512, 512)):
+    """
+    https://arxiv.org/pdf/1505.04597.pdf
+    """
 
 	img_rows, img_cols = img_size
 	inputs = Input((img_rows, img_cols, 1))
 
-	conv1 = Conv2D(64, 3, activation='relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
-	conv1 = Conv2D(64, 3, activation='relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
+	conv1 = _ConvDown(inputs, 64)
 	pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
 
-	conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
-	conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
+	conv2 = _ConvDown(pool1, 128)
 	pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
-	conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
-	conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
+	conv3 = _ConvDown(pool2, 256)
 	pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
 
-	conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)
-	conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
+	conv4 = _ConvDown(pool3, 512)
 	drop4 = Dropout(0.5)(conv4)
 	pool4 = MaxPooling2D(pool_size=(2, 2))(drop4)
 
-	conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
-	conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
+	conv5 = _ConvDown(pool4, 1024)
 	drop5 = Dropout(0.5)(conv5)
 
-	up6 = Conv2D(512, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(drop5))
-	merge6 = merge([drop4,up6], mode = 'concat', concat_axis = 3)
-	conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge6)
-	conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
+	up6 = _ConvUp(drop5, 512)
+	merge6 = concatenate([drop4, up6])
+	conv6 = _ConvDown(merge6, 512)
 
-	up7 = Conv2D(256, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv6))
-	merge7 = merge([conv3,up7], mode = 'concat', concat_axis = 3)
-	conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge7)
-	conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
+	up7 = _ConvUp(conv6, 256)
+	merge7 = concatenate([conv3, up7])
+	conv7 = _ConvDown(merge7, 256)
 
-	up8 = Conv2D(128, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv7))
-	merge8 = merge([conv2,up8], mode = 'concat', concat_axis = 3)
-	conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge8)
-	conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
+	up8 = _ConvUp(conv7, 128)
+	merge8 = concatenate([conv2, up8])
+	conv8 = _ConvDown(merge8, 128)
 
-	up9 = Conv2D(64, 2, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(UpSampling2D(size = (2,2))(conv8))
-	merge9 = merge([conv1,up9], mode = 'concat', concat_axis = 3)
-	conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge9)
-	conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-	conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-	conv10 = Conv2D(1, 1, activation = 'sigmoid')(conv9)
+	up9 = _ConvUp(conv8, 64)
+	out = concatenate([conv1, up9])
+	out = _ConvDown(out, 64)
 
-	model = Model(input=inputs, output=conv10)
+	out = Conv2D(2, 3, padding='same', activation='elu',
+                 kernel_initializer='he_normal')(out)
+
+	out = Conv2D(1, 1, activation='sigmoid')(out)
+
+	model = Model(input=inputs, output=out)
 
 	model.compile(optimizer=Adam(lr=1e-4), loss='binary_crossentropy', metrics=['accuracy'])
 
 	return model
 
 
-
-def generator(X, Y, batch_size=1, random=True, augment=None):
+def SampleGenerator(X, Y, batch_size=1, random=True, augment=None):
+    """
+    Infinite generator of batches of (input image, labelled image)
+    """
 
     num_samples = len(X)
     while True:
         # Shuffle the data to avoid looping over in the same order every time
         if random:
-        	X, Y = _shuffle(X, Y)
+            X, Y = _shuffle(X, Y)
 
         for offset in range(0, num_samples, batch_size):
             batch_samples = list(range(offset, offset + batch_size))
@@ -95,50 +107,55 @@ def generator(X, Y, batch_size=1, random=True, augment=None):
 
 
 def load_img(fname):
-	img = np.loadtxt(fname).astype(float)
-	img = 2 * ((img / 255.) - 0.5)
+    """ Load NumPy array representing B/W image,
+        convert it in the range [-1, 1],
+        extend it in 3rd dimension """
+	img = np.load(fname).astype('float')
+	img = 2 * ((img / 255) - 0.5)
 	return img[:, :, None]
 
 def load_label(fname):
-	img = np.loadtxt(fname)
-	img /= 255.0
+    """ Load NumPy array representing B/W image,
+        convert it in the range [0, 1] (probability),
+        extend it in 3rd dimension """
+	img = np.load(fname).astype('float')
+	img /= 255
 	return img[:, :, None]
 
 
-imgnames = sorted(glob.glob('data/origs/*np'))
-labelnames = sorted(glob.glob('data/labels/*np'))
+if __name__ == '__main__':
 
+    imgnames = sorted(glob.glob('data/origs/*.npy'))
+    labelnames = sorted(glob.glob('data/labels/*.npy'))
+    assert len(imgnames) == len(labelnames)
 
-assert len(imgnames) == len(labelnames)
+    X = [load_img(imname) for imname in imgnames]
+    Y = [load_label(imname) for imname in labelnames]
 
-X = [load_img(imname) for imname in imgnames]
-Y = [load_label(imname) for imname in labelnames]
+    model = UNet()
+    print(model.summary())
 
-model = UNet()
+    imggen = ImageDataGenerator(
+    	rotation_range=20,
+    	width_shift_range=0.2,
+    	height_shift_range=0.2,
+    	shear_range=0.2,
+    	zoom_range=0.2,
+    	horizontal_flip=True
+    )
 
-imggen = ImageDataGenerator(
-	rotation_range=20,
-	width_shift_range=0.2,
-	height_shift_range=0.2,
-	shear_range=0.2,
-	zoom_range=0.2,
-	horizontal_flip=True
-)
+    train_generator = SampleGenerator(X, Y, batch_size=1, random=True,
+                                      augment=imggen.random_transform)
 
-img_augmentation = imggen.random_transform
+    callbacks = [
+     	EarlyStopping(patience=50, monitor='loss'),
+    	ModelCheckpoint('unet.{epoch:03d}.{loss:.5f}.h5', monitor='loss', save_best_only=True),
+    ]
 
-
-train_generator = generator(X, Y, batch_size=1, random=True, augment=img_augmentation)
-
-callbacks = [
- 	EarlyStopping(patience=50, monitor='loss'),
-	ModelCheckpoint('unet.{epoch:03d}.{loss:.5f}.h5', monitor='loss', save_best_only=True),
-]
-
-model.fit_generator(
-    train_generator,
-    len(X),
-    epochs=1000,
-    verbose=1,
-    callbacks=callbacks
-)
+    model.fit_generator(
+        train_generator,
+        4 * len(X),
+        epochs=1000,
+        verbose=1,
+        callbacks=callbacks
+    )
