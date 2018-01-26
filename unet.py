@@ -169,7 +169,13 @@ if __name__ == "__main__":
     X = [load_img(name) for name in img_names]
     Y = [load_label(name) for name in label_names]
     
-    model = UNet(img_size=(img_size, img_size))
+    modelnames = sorted(_glob.glob('unet*.h5'))
+    if modelnames:
+        model = _models.load_model(modelnames[-1])
+        initial_epoch = int(modelnames[-1].split('.')[1]) + 1
+    else:
+        model = UNet(img_size=(img_size, img_size))
+        initial_epoch = 0
     print(model.summary())
     
     img_gen = _preprocess.ImageDataGenerator(
@@ -181,7 +187,7 @@ if __name__ == "__main__":
         horizontal_flip=True
     ).random_transform_covariant
     
-    train_generator = SampleGenerator(X, Y, batch_size=4, random=True,
+    train_generator = SampleGenerator(X, Y, batch_size=2, random=True,
                                       augment=img_gen)
     
     callbacks = [
@@ -195,5 +201,6 @@ if __name__ == "__main__":
         4 * len(X),
         epochs=1000,
         verbose=1,
-        callbacks=callbacks
+        callbacks=callbacks,
+        initial_epoch=initial_epoch,
     )
