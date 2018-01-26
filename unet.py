@@ -1,7 +1,8 @@
 from __future__ import division, print_function
 
 import glob as _glob
-import os
+import os as _os
+import shutil as _shutil
 
 import keras.callbacks as _callbacks
 import keras.layers as _layers
@@ -95,7 +96,7 @@ def UNet(img_size=(512, 512)):
     
     out = _layers.Conv2D(1, 1, activation="sigmoid")(out)
     
-    model = _models.Model(input=inputs, output=out)
+    model = _models.Model(inputs=inputs, outputs=out)
     
     model.compile(optimizer=_optimizers.Adam(lr=3e-4),
                   loss="binary_crossentropy",
@@ -150,13 +151,16 @@ def load_label(fname):
 
 if __name__ == "__main__":
     img_size = 384
+    batch_size = 2
 
     from preprocess_imgs import  make_inputs_from_imgs
 
-    if not os.path.exists('./data'):
-        os.mkdir('./data')
-        os.mkdir('./data/origs')
-        os.mkdir('./data/labels')
+    # Create clean work data
+    if _os.path.exists('./data'):
+        _shutil.rmtree('./data')
+    _os.mkdir('./data')
+    _os.mkdir('./data/origs')
+    _os.mkdir('./data/labels')
 
     # Create input arrays from folder of images and masks
     make_inputs_from_imgs(img_size, in_folder='../openfriday_nn', out_folder='./data/', extension='png')
@@ -168,13 +172,16 @@ if __name__ == "__main__":
     X = [load_img(name) for name in img_names]
     Y = [load_label(name) for name in label_names]
     
-    modelnames = sorted(_glob.glob('unet*.h5'))
+    modelnames = sorted(_glob.glob('unet.*.h5'))
     if modelnames:
+        # Warm start
         model = _models.load_model(modelnames[-1])
         initial_epoch = int(modelnames[-1].split('.')[1]) + 1
     else:
+        # Cold start
         model = UNet(img_size=(img_size, img_size))
         initial_epoch = 0
+        
     print(model.summary())
     
     img_gen = _preprocess.ImageDataGenerator(
@@ -186,8 +193,9 @@ if __name__ == "__main__":
         horizontal_flip=True
     ).random_transform_covariant
     
-    train_generator = SampleGenerator(X, Y, batch_size=2, random=True,
-                                      augment=img_gen)
+    train_generator = SampleGenerator(
+        X, Y, batch_size=batch_size, random=True, augment=img_gen
+    )
     
     callbacks = [
         _callbacks.EarlyStopping(patience=50, monitor="loss"),
@@ -196,9 +204,9 @@ if __name__ == "__main__":
     ]
     
     model.fit_generator(
-        train_generator,
-        4 * len(X),
-        epochs=1000,
+        generator=train_generator,
+        steps_per_epoch=400 // batch_size,  # each epoch is trained on ~400 images
+        epochs=1000,  # ~= forever
         verbose=1,
         callbacks=callbacks,
         initial_epoch=initial_epoch,
