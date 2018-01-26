@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 import glob as _glob
+import os
 
 import keras.callbacks as _callbacks
 import keras.layers as _layers
@@ -154,8 +155,11 @@ if __name__ == "__main__":
     from preprocess_imgs import  make_inputs_from_imgs
 
     # Create input arrays from folder of images and masks
-    make_inputs_from_imgs(img_size, in_folder='./images', out_folder='./data/', extension='png')
+    make_inputs_from_imgs(img_size, in_folder='../openfriday_nn', out_folder='./data/', extension='png')
     
+    if not os.path.exists('./data'):
+        os.mkdir('./data')
+        
     img_names = sorted(_glob.glob('./data/origs/*.npy'))
     label_names = sorted(_glob.glob('./data/labels/*.npy'))
     assert len(img_names) == len(label_names)

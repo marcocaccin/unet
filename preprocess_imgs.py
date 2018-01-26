@@ -7,8 +7,8 @@ from PIL import Image
 
 def make_inputs_from_imgs(size, in_folder='./', out_folder='./data/', extension='png'):
    
-    IN_FOLDER_IMGS = os.path.join(in_folder, 'imgs/')
-    IN_FOLDER_MASKS = os.path.join(in_folder, 'masks/')
+    IN_FOLDER_IMGS = os.path.join(in_folder, 'Images/')
+    IN_FOLDER_MASKS = os.path.join(in_folder, 'Annotations/')
     OUT_FOLDER_PICS = os.path.join(out_folder, 'origs/')
     OUT_FOLDER_LABELS = os.path.join(out_folder, 'labels/')
 
