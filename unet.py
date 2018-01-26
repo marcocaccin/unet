@@ -150,9 +150,14 @@ def load_label(fname):
 
 if __name__ == "__main__":
     img_size = 384
+
+    from preprocess_imgs import  make_inputs_from_imgs
+
+    # Create input arrays from folder of images and masks
+    make_inputs_from_imgs(img_size, in_folder='./images', out_folder='./data/', extension='png')
     
-    img_names = sorted(_glob.glob('data/origs/*.npy'))
-    label_names = sorted(_glob.glob('data/labels/*.npy'))
+    img_names = sorted(_glob.glob('./data/origs/*.npy'))
+    label_names = sorted(_glob.glob('./data/labels/*.npy'))
     assert len(img_names) == len(label_names)
 
     X = [load_img(name) for name in img_names]
