@@ -159,7 +159,9 @@ if __name__ == "__main__":
     
     if not os.path.exists('./data'):
         os.mkdir('./data')
-        
+        os.mkdir('./data/origs')
+        os.mkdir('./data/labels')
+
     img_names = sorted(_glob.glob('./data/origs/*.npy'))
     label_names = sorted(_glob.glob('./data/labels/*.npy'))
     assert len(img_names) == len(label_names)
@@ -179,7 +181,7 @@ if __name__ == "__main__":
         horizontal_flip=True
     ).random_transform_covariant
     
-    train_generator = SampleGenerator(X, Y, batch_size=1, random=True,
+    train_generator = SampleGenerator(X, Y, batch_size=4, random=True,
                                       augment=img_gen)
     
     callbacks = [
