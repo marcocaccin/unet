@@ -97,7 +97,7 @@ def UNet(img_size=(512, 512)):
     
     model = _models.Model(input=inputs, output=out)
     
-    model.compile(optimizer=_optimizers.Adam(lr=1e-4),
+    model.compile(optimizer=_optimizers.Adam(lr=3e-4),
                   loss="binary_crossentropy",
                   metrics=["accuracy"])
     
@@ -149,6 +149,8 @@ def load_label(fname):
 
 
 if __name__ == "__main__":
+    img_size = 384
+    
     img_names = sorted(_glob.glob('data/origs/*.npy'))
     label_names = sorted(_glob.glob('data/labels/*.npy'))
     assert len(img_names) == len(label_names)
@@ -156,7 +158,7 @@ if __name__ == "__main__":
     X = [load_img(name) for name in img_names]
     Y = [load_label(name) for name in label_names]
     
-    model = UNet()
+    model = UNet(img_size=(img_size, img_size))
     print(model.summary())
     
     img_gen = _preprocess.ImageDataGenerator(
