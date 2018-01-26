@@ -114,12 +114,11 @@ def SampleGenerator(images, labels, batch_size=1, random=True, augment=None):
         
         for cnt in range(num_samples // batch_size):
             offset = cnt * batch_size
-            batch_samples = list(range(offset, offset + batch_size))
             
             x_batch = []
             y_batch = []
             
-            for idx in batch_samples:
+            for idx in range(offset, offset + batch_size):
                 x = images[idx]
                 y = labels[idx]
                 if augment is not None:
