@@ -55,7 +55,6 @@ def UNet(img_size=(512, 512)):
     :return: UNet Keras model
     :rtype: Model
     """
-    
     img_rows, img_cols = img_size
     inputs = _layers.Input((img_rows, img_cols, 1))
     
@@ -113,7 +112,8 @@ def SampleGenerator(images, labels, batch_size=1, random=True, augment=None):
         if random:
             images, labels = _shuffle(images, labels)
         
-        for offset in range(0, num_samples, batch_size):
+        for cnt in range(num_samples // batch_size):
+            offset = cnt * batch_size
             batch_samples = list(range(offset, offset + batch_size))
             
             x_batch = []
