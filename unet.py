@@ -153,7 +153,7 @@ def load_label(fname):
 
 if __name__ == "__main__":
     img_size = 384
-    batch_size = 2
+    batch_size = 8
 
     from preprocess_imgs import  make_inputs_from_imgs
 
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     _os.mkdir('./data/labels')
 
     # Create input arrays from folder of images and masks
-    make_inputs_from_imgs(img_size, in_folder='../openfriday_nn', out_folder='./data/', extension='png', bw_only=False)
+    make_inputs_from_imgs(img_size, in_folder='./dataset', out_folder='./data/', extension='png', bw_only=False)
     
     img_names = sorted(_glob.glob('./data/origs/*.npy'))
     label_names = sorted(_glob.glob('./data/labels/*.npy'))

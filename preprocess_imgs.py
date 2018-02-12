@@ -25,7 +25,7 @@ def make_inputs_from_imgs(size, in_folder='./', out_folder='./data/', extension=
         
         try:
             # Convert original jpeg to B/W
-            img_orig = Image.open(img_name)
+            img_orig = Image.open(img_name).convert('RGB')
             if bw_only:
                 img_orig = img_orig.convert('L')
             img_label = Image.open(mask_name)
