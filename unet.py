@@ -24,9 +24,9 @@ def _ConvDown(input_tensor, filters):
     :return: Tensor of shape (batch_size, length, height, channels)
     :rtype: Tensor
     """
-    out = _layers.Conv2D(filters, 3, padding="same", activation="elu",
+    out = _layers.Conv2D(filters, 3, padding="same", activation="relu",
                          kernel_initializer="he_normal")(input_tensor)
-    return _layers.Conv2D(filters, 3, padding="same", activation="elu",
+    return _layers.Conv2D(filters, 3, padding="same", activation="relu",
                           kernel_initializer="he_normal")(out)
 
 
@@ -42,7 +42,7 @@ def _ConvUp(input_tensor, filters):
     :rtype: Tensor
     """
     out = _layers.UpSampling2D(size=(2, 2))(input_tensor)
-    return _layers.Conv2D(filters, 2, padding="same", activation="elu",
+    return _layers.Conv2D(filters, 2, padding="same", activation="relu",
                           kernel_initializer="he_normal")(out)
 
 
@@ -91,14 +91,14 @@ def UNet(img_size=(512, 512), channels=3):
     out = _layers.concatenate([conv1, up9])
     out = _ConvDown(out, 64)
     
-    out = _layers.Conv2D(2, 3, padding="same", activation="elu",
+    out = _layers.Conv2D(2, 3, padding="same", activation="relu",
                          kernel_initializer="he_normal")(out)
     
     out = _layers.Conv2D(1, 1, activation="sigmoid")(out)
     
     model = _models.Model(inputs=inputs, outputs=out)
     
-    model.compile(optimizer=_optimizers.Adam(lr=3e-4),
+    model.compile(optimizer=_optimizers.Adam(),
                   loss="binary_crossentropy",
                   metrics=["accuracy"])
     
