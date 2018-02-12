@@ -46,7 +46,7 @@ def _ConvUp(input_tensor, filters):
                           kernel_initializer="he_normal")(out)
 
 
-def UNet(img_size=(512, 512)):
+def UNet(img_size=(512, 512), channels=3):
     """
     U{https://arxiv.org/pdf/1505.04597.pdf}
 
@@ -57,7 +57,7 @@ def UNet(img_size=(512, 512)):
     :rtype: Model
     """
     img_rows, img_cols = img_size
-    inputs = _layers.Input((img_rows, img_cols, 1))
+    inputs = _layers.Input((img_rows, img_cols, channels))
     
     conv1 = _ConvDown(inputs, 64)
     pool1 = _layers.MaxPooling2D(pool_size=(2, 2))(conv1)
@@ -137,6 +137,8 @@ def load_img(fname):
     extend it in 3rd dimension (color channels)"""
     img = _np.load(fname).astype("float")
     img = 2 * ((img / 255) - 0.5)
+    if img.ndim == 3:
+        return img
     return img[:, :, None]
 
 
@@ -163,7 +165,7 @@ if __name__ == "__main__":
     _os.mkdir('./data/labels')
 
     # Create input arrays from folder of images and masks
-    make_inputs_from_imgs(img_size, in_folder='../openfriday_nn', out_folder='./data/', extension='png')
+    make_inputs_from_imgs(img_size, in_folder='../openfriday_nn', out_folder='./data/', extension='png', bw_only=False)
     
     img_names = sorted(_glob.glob('./data/origs/*.npy'))
     label_names = sorted(_glob.glob('./data/labels/*.npy'))

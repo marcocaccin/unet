@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 
-def make_inputs_from_imgs(size, in_folder='./', out_folder='./data/', extension='png'):
+def make_inputs_from_imgs(size, in_folder='./', out_folder='./data/', extension='png', bw_only=True):
    
     IN_FOLDER_IMGS = os.path.join(in_folder, 'Images/')
     IN_FOLDER_MASKS = os.path.join(in_folder, 'Annotations/')
@@ -26,12 +26,13 @@ def make_inputs_from_imgs(size, in_folder='./', out_folder='./data/', extension=
         try:
             # Convert original jpeg to B/W
             img_orig = Image.open(img_name)
+            if bw_only:
+                img_orig = img_orig.convert('L')
             img_label = Image.open(mask_name)
-            img_bw = img_orig.convert('L')
             
             # Get 512x512 arrays from the images
             label_final = np.array(img_label.resize((size, size)), dtype=np.uint8)
-            img_final = np.array(img_bw.resize((size, size)), dtype=np.uint8)
+            img_final = np.array(img_orig.resize((size, size)), dtype=np.uint8)
             
             # Save to files
             np.save(img_outfile, img_final)
